@@ -24,7 +24,7 @@ The app parses rich HTML content—including text, images, tables, and attachmen
 - Xcode 12 or later
 - iOS 15 or higher
 - Swift 5
-- (SwiftSoup)[https://github.com/scinfu/SwiftSoup] (managed via Swift Package Manager)
+- [SwiftSoup](https://github.com/scinfu/SwiftSoup) (managed via Swift Package Manager)
 
 
 ## Installation
