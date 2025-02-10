@@ -18,6 +18,10 @@ The app parses rich HTML content—including text, images, tables, and attachmen
 - Modern UI/UX:
   Uses SwiftUI to present notifications and detailed posts in a card-based layout with elegant typography, shadows, and dynamic content views.
 
+- Push Notifications: 
+  Receive instant notifications when new announcements are posted, ensuring you never miss important updates.
+
+
 
 ## Requirements
 
@@ -58,6 +62,13 @@ Add the following keys to your Info.plist file for file sharing and document han
 LSSupportsOpeningDocumentsInPlace – Boolean: YES
 UIFileSharingEnabled – Boolean: YES
 ```
+
+5. Configure Notifications:
+
+   Add these keys to your Info.plist:
+   - `NSUserNotificationUsageDescription` – String explaining notification usage
+   - `UIBackgroundModes` – Array including "remote-notification"
+
 
 ## Usage
 
