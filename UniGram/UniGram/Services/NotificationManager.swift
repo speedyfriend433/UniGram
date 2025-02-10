@@ -14,8 +14,10 @@ class NotificationManager {
         requestPermission()
     }
     
-    private func requestPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+    func requestPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(
+            options: [.alert, .sound, .badge]
+        ) { granted, error in
             if let error = error {
                 print("❌ 알림 권한 요청 오류: \(error)")
             } else {
@@ -23,4 +25,29 @@ class NotificationManager {
             }
         }
     }
+    
+    func scheduleNotification(title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: 1,
+            repeats: false
+        )
+        
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: trigger
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("❌ 알림 예약 실패: \(error)")
+            }
+        }
+    }
 }
+

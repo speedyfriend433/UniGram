@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var noticeFetcher = NoticeFetcher()
+    @StateObject private var colorScheme = ColorSchemeManager()
     @State private var timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     var body: some View {
@@ -69,6 +70,23 @@ struct ContentView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("UniGram 공지사항")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    DarkModeButton(colorScheme: colorScheme)
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            colorScheme.toggleColorScheme()
+                        }
+                    }) {
+                        Image(systemName: colorScheme.isDarkMode ? "moon.fill" : "moon")
+                            .foregroundColor(colorScheme.isDarkMode ? .yellow : .primary)
+                            .font(.system(size: 16))
+                            .rotationEffect(.degrees(colorScheme.isDarkMode ? 360 : 0))
+                            .animation(.easeInOut(duration: 0.3), value: colorScheme.isDarkMode)
+                    }
+                }
+            }
+
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 noticeFetcher.refreshNotices()
@@ -80,8 +98,34 @@ struct ContentView: View {
                 noticeFetcher.refreshNotices()
             }
         }
+        .preferredColorScheme(colorScheme.isDarkMode ? .dark : .light)
     }
 }
+
+struct DarkModeButton: View {
+    @ObservedObject var colorScheme: ColorSchemeManager
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                colorScheme.toggleColorScheme()
+            }
+        }) {
+            ZStack {
+                Circle()
+                    .fill(colorScheme.isDarkMode ? Color.black.opacity(0.1) : Color.gray.opacity(0.1))
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: colorScheme.isDarkMode ? "moon.fill" : "moon")
+                    .foregroundColor(colorScheme.isDarkMode ? .yellow : .primary)
+                    .font(.system(size: 16))
+                    .rotationEffect(.degrees(colorScheme.isDarkMode ? 360 : 0))
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: colorScheme.isDarkMode)
+    }
+}
+
 
 struct ModernNoticeRow: View {
     let notice: Notice
