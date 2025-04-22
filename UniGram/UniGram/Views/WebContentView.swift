@@ -1,26 +1,18 @@
-//
-//  WebContentView.swift
-//  UniGram
-//
-//  Created by speedy on 2/8/25.
-//
-
 import SwiftUI
 import WebKit
 
 struct WebContentView: UIViewRepresentable {
     let htmlContent: String
-    
+
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView()
         webView.backgroundColor = .clear
         webView.isOpaque = false
-        webView.scrollView.isScrollEnabled = false // Disable scrolling within WebView
+        webView.scrollView.isScrollEnabled = false
         return webView
     }
-    
+
     func updateUIView(_ webView: WKWebView, context: Context) {
-        // Create HTML document with proper styling
         let htmlString = """
         <!DOCTYPE html>
         <html>
@@ -35,24 +27,24 @@ struct WebContentView: UIViewRepresentable {
                     padding: 0;
                     background-color: transparent;
                 }
-                
+
                 table {
                     width: 100% !important;
                     border-collapse: collapse;
                     margin: 10px 0;
                 }
-                
+
                 td, th {
                     border: 1px solid #ccc;
                     padding: 8px;
                     text-align: left;
                 }
-                
+
                 img {
                     max-width: 100%;
                     height: auto;
                 }
-                
+
                 @media (prefers-color-scheme: dark) {
                     body { color: #FFFFFF; }
                     table { border-color: #444; }
@@ -65,10 +57,9 @@ struct WebContentView: UIViewRepresentable {
         </body>
         </html>
         """
-        
+
         webView.loadHTMLString(htmlString, baseURL: nil)
-        
-        // Adjust WebView height to content
+
         webView.evaluateJavaScript("document.readyState") { complete, _ in
             if complete != nil {
                 webView.evaluateJavaScript("document.body.scrollHeight") { height, _ in

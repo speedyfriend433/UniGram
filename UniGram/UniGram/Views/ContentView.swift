@@ -11,7 +11,7 @@ struct ContentView: View {
     @StateObject private var noticeFetcher = NoticeFetcher()
     @StateObject private var colorScheme = ColorSchemeManager()
     @State private var timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -20,31 +20,29 @@ struct ContentView: View {
                         ProgressView("로딩 중...")
                             .padding()
                     } else {
-                        // Pinned Notices Section
                         if !noticeFetcher.pinnedNotices.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("📌 고정 공지")
                                     .font(.system(size: 18, weight: .bold))
                                     .foregroundColor(.primary)
                                     .padding(.horizontal)
-                                
+
                                 ForEach(noticeFetcher.pinnedNotices) { notice in
                                     ModernNoticeRow(notice: notice, isPinned: true)
                                 }
                             }
                             .padding(.vertical, 8)
-                            
+
                             Divider()
                                 .padding(.horizontal)
                         }
-                        
-                        // Regular Notices Section
+
                         VStack(alignment: .leading, spacing: 12) {
                             Text("공지사항")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.primary)
                                 .padding(.horizontal)
-                            
+
                             if noticeFetcher.notices.isEmpty && !noticeFetcher.isFetching {
                                 EmptyNoticeView()
                             } else {
@@ -57,7 +55,7 @@ struct ContentView: View {
                                         }
                                 }
                             }
-                            
+
                             if noticeFetcher.isFetching {
                                 LoadingRow()
                             } else if !noticeFetcher.hasMoreData && !noticeFetcher.notices.isEmpty {
@@ -104,7 +102,7 @@ struct ContentView: View {
 
 struct DarkModeButton: View {
     @ObservedObject var colorScheme: ColorSchemeManager
-    
+
     var body: some View {
         Button(action: {
             withAnimation(.easeInOut(duration: 0.3)) {
@@ -115,7 +113,7 @@ struct DarkModeButton: View {
                 Circle()
                     .fill(colorScheme.isDarkMode ? Color.black.opacity(0.1) : Color.gray.opacity(0.1))
                     .frame(width: 36, height: 36)
-                
+
                 Image(systemName: colorScheme.isDarkMode ? "moon.fill" : "moon")
                     .foregroundColor(colorScheme.isDarkMode ? .yellow : .primary)
                     .font(.system(size: 16))
@@ -130,37 +128,34 @@ struct DarkModeButton: View {
 struct ModernNoticeRow: View {
     let notice: Notice
     let isPinned: Bool
-    
+
     var body: some View {
         NavigationLink(destination: PostDetailView(notice: notice)) {
             HStack(spacing: 16) {
-                // Number Circle
                 ZStack {
                     Circle()
                         .fill(isPinned ? Color.red.opacity(0.1) : Color.blue.opacity(0.1))
                         .frame(width: 40, height: 40)
-                    
+
                     Text(notice.number)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(isPinned ? .red : .blue)
                 }
-                
-                // Content
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(notice.title)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.primary)
                         .lineLimit(2)
-                    
+
                     Text(notice.link)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
-                // Arrow
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.secondary)

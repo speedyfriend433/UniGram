@@ -18,7 +18,6 @@ struct PostAttachment: Identifiable {
     let type: AttachmentType
 }
 
-// Update PostAttachment to include file type
 enum AttachmentType {
     case hwp
     case pdf
@@ -40,6 +39,7 @@ enum AttachmentType {
         }
     }
 }
+
 // MARK: - Views
 struct PostDetailView: View {
     let notice: Notice
@@ -48,16 +48,13 @@ struct PostDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Header Card
                 VStack(alignment: .leading, spacing: 12) {
-                    // Title
                     Text(notice.title)
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.primary)
                     
                     Divider()
                     
-                    // Metadata
                     HStack(spacing: 16) {
                         if !viewModel.writer.isEmpty {
                             Label(viewModel.writer, systemImage: "person.circle.fill")
@@ -83,7 +80,6 @@ struct PostDetailView: View {
                 .cornerRadius(12)
                 .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                 
-                // Content section
                 if viewModel.isLoading {
                     ContentLoadingView()
                 } else if !viewModel.errorMessage.isEmpty {
@@ -102,7 +98,6 @@ struct PostDetailView: View {
                     .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                 }
                 
-                // Attachments section
                 if !viewModel.attachments.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("📎 첨부파일")
@@ -126,7 +121,6 @@ struct PostDetailView: View {
     }
 }
 
-// Loading View
 struct ContentLoadingView: View {
     var body: some View {
         VStack(spacing: 20) {
@@ -142,7 +136,6 @@ struct ContentLoadingView: View {
     }
 }
 
-// Text Content View
 struct ContentTextView: View {
     let text: String
     let alignment: TextAlignment
@@ -159,7 +152,6 @@ struct ContentTextView: View {
     }
 }
 
-// Image Content View
 struct ContentImageView: View {
     let imageUrl: String
     
@@ -187,14 +179,12 @@ struct ContentImageView: View {
     }
 }
 
-// Table Content View
 struct ContentTableView: View {
     let headers: [String]
     let rows: [[String]]
     
     var body: some View {
         VStack(spacing: 0) {
-            // Headers
             if !headers.isEmpty {
                 HStack(spacing: 0) {
                     ForEach(headers, id: \.self) { header in
@@ -208,7 +198,6 @@ struct ContentTableView: View {
                 }
             }
             
-            // Rows
             ForEach(rows, id: \.self) { row in
                 HStack(spacing: 0) {
                     ForEach(row, id: \.self) { cell in
@@ -231,20 +220,35 @@ struct ContentTableView: View {
     }
 }
 
-// Updated Attachment Row
+struct AlertMessage: Identifiable {
+    let id = UUID() 
+    let text: String
+}
+
 struct AttachmentRow: View {
     let attachment: PostAttachment
     @StateObject private var fileDownloader = FileDownloader()
-    
+    @State private var isShowingPreview = false
+    @State private var alertMessage: AlertMessage? = nil
+
     var body: some View {
         Button(action: {
-            fileDownloader.downloadFile(from: attachment.url, filename: attachment.name)
+            alertMessage = nil 
+
+            fileDownloader.downloadFile(from: attachment.url, filename: attachment.name) { downloadedURL, error in
+                if let error = error {
+                    print("❌ Download failed in AttachmentRow: \(error.localizedDescription)")
+                    self.alertMessage = AlertMessage(text: "다운로드 실패: \(error.localizedDescription)")
+                } else if downloadedURL != nil {
+                    self.isShowingPreview = true
+                }
+            }
         }) {
             HStack {
                 Image(systemName: attachment.type.icon)
                     .font(.system(size: 20))
                     .foregroundColor(attachment.type.color)
-                
+
                 VStack(alignment: .leading) {
                     Text(attachment.name)
                         .font(.system(size: 14))
@@ -255,9 +259,9 @@ struct AttachmentRow: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 if fileDownloader.isDownloading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
@@ -273,6 +277,54 @@ struct AttachmentRow: View {
             .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
         }
         .padding(.horizontal)
+        .sheet(isPresented: $isShowingPreview) {
+            if let previewURL = fileDownloader.previewURL {
+                QuickLookPreview(url: previewURL)
+            }
+        }
+        .alert(item: $alertMessage) { msg in 
+            Alert(title: Text("다운로드 오류"), message: Text(msg.text), dismissButton: .default(Text("확인")))
+        }
+    }
+}
+
+/*
+// Helper struct to conform String to Identifiable for the alert
+extension String: Identifiable {
+    public var id: String { self }
+}
+*/
+
+struct QuickLookPreview: UIViewControllerRepresentable {
+    let url: URL
+    
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(url: url)
+    }
+    
+    class Coordinator: NSObject, QLPreviewControllerDataSource {
+        let url: URL
+        
+        init(url: URL) {
+            self.url = url
+            super.init()
+        }
+        
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+            return 1
+        }
+        
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            return url as QLPreviewItem
+        }
     }
 }
 
@@ -297,18 +349,16 @@ struct PostContentView: View {
     }
 }
 
-// Custom Table View
 struct CustomTableView: View {
     let headers: [String]
     let rows: [[String]]
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            // Headers
             if !headers.isEmpty {
                 HStack(spacing: 0) {
-                    ForEach(headers, id: \.self) { header in
-                        Text(header)
+                    ForEach(headers.indices, id: \.self) { index in
+                        Text(headers[index]) 
                             .font(.system(size: 14, weight: .bold))
                             .frame(maxWidth: .infinity)
                             .padding(8)
@@ -317,12 +367,11 @@ struct CustomTableView: View {
                     }
                 }
             }
-            
-            // Rows
-            ForEach(rows, id: \.self) { row in
+
+            ForEach(rows.indices, id: \.self) { rowIndex in
                 HStack(spacing: 0) {
-                    ForEach(row, id: \.self) { cell in
-                        Text(cell)
+                    ForEach(rows[rowIndex].indices, id: \.self) { cellIndex in
+                        Text(rows[rowIndex][cellIndex]) 
                             .font(.system(size: 14))
                             .frame(maxWidth: .infinity)
                             .padding(8)
@@ -339,7 +388,6 @@ struct CustomTableView: View {
     }
 }
 
-// Add AsyncImage view for loading images
 struct PostImageView: View {
     let imageUrl: String
     
@@ -388,80 +436,73 @@ struct PostContent: Identifiable {
     let id = UUID()
     var type: ContentType
     var content: String
-    var alignment: TextAlignment = .leading // Stores text alignment
+    var alignment: TextAlignment = .leading
     
     
     enum ContentType {
         case text
         case image
-        case table([[String]], [String]) // (rows, headers)
+        case table([[String]], [String]) 
     }
 }
+import QuickLook
+
 class FileDownloader: ObservableObject {
     @Published var isDownloading = false
     @Published var downloadProgress: Float = 0.0
+    @Published var previewURL: URL?
     
-    func downloadFile(from urlString: String, filename: String, completion: @escaping (Bool, String) -> Void = {_,_ in }) {
+    func downloadFile(from urlString: String, filename: String, completion: @escaping (URL?, Error?) -> Void) {
         guard let url = URL(string: urlString) else {
             print("❌ Invalid URL")
+            completion(nil, NSError(domain: "FileDownloader", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
             return
         }
-        
+
         isDownloading = true
-        
+        downloadProgress = 0.0 
+
         let task = URLSession.shared.downloadTask(with: url) { localURL, response, error in
             DispatchQueue.main.async {
                 self.isDownloading = false
-                
+
                 if let error = error {
-                    completion(false, "Download failed: \(error.localizedDescription)")
+                    print("❌ Download failed: \(error.localizedDescription)")
+                    completion(nil, error)
                     return
                 }
-                
+
                 guard let localURL = localURL else {
                     print("❌ Local URL is nil")
+                    completion(nil, NSError(domain: "FileDownloader", code: -2, userInfo: [NSLocalizedDescriptionKey: "Local URL is nil after download"]))
                     return
                 }
-                
-                // Get the documents directory
+
                 guard let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
                     print("❌ Could not get documents directory")
+                    completion(nil, NSError(domain: "FileDownloader", code: -3, userInfo: [NSLocalizedDescriptionKey: "Could not get documents directory"]))
                     return
                 }
-                
-                // Create final URL for the file
+
                 let destinationURL = documentsPath.appendingPathComponent(filename)
-                
-                // Remove existing file if it exists
+
                 try? FileManager.default.removeItem(at: destinationURL)
-                
+
                 do {
-                    // Move downloaded file to documents directory
                     try FileManager.default.moveItem(at: localURL, to: destinationURL)
                     print("✅ File saved: \(destinationURL.path)")
-                    
-                    // Share the file
-                    DispatchQueue.main.async {
-                        let activityVC = UIActivityViewController(
-                            activityItems: [destinationURL],
-                            applicationActivities: nil
-                        )
-                        
-                        // Present the share sheet
-                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                           let window = windowScene.windows.first,
-                           let rootVC = window.rootViewController {
-                            activityVC.popoverPresentationController?.sourceView = rootVC.view
-                            rootVC.present(activityVC, animated: true)
-                        }
-                    }
+
+                    // *** REMOVED UIActivityViewController presentation ***
+
+                    self.previewURL = destinationURL
+                    completion(destinationURL, nil)
                 } catch {
-                    print("❌ File save error: \(error.localizedDescription)")
+                    print("❌ File move error: \(error.localizedDescription)")
+                    completion(nil, error)
                 }
-                completion(true, "File downloaded successfully")
             }
         }
-        
+
         task.resume()
     }
 }
@@ -511,36 +552,30 @@ class PostDetailViewModel: ObservableObject {
                 do {
                     let doc = try SwiftSoup.parse(html)
                     
-                    // Extract metadata
                     if let etcBox = try? doc.select("div.b-etc-box").first() {
                         let spans = try etcBox.select("span")
                         for span in spans {
-                            let text = try span.text()
+                            let text = try span.text() 
                             if text.contains("작성자") {
                                 self?.writer = text.replacingOccurrences(of: "작성자 : ", with: "")
                             } else if text.contains("등록일") {
-                                self?.date = text.replacingOccurrences(of: "등록일 : ", with: "")
+                                self?.date = try span.text().replacingOccurrences(of: "등록일 : ", with: "") // Added try
                             } else if text.contains("조회수") {
                                 self?.views = text.replacingOccurrences(of: "조회수 : ", with: "")
                             }
                         }
                     }
                 
-                    // Inside fetchPostDetail function, replace the content extraction part with this:
-                    // Extract content
                     if let contentBox = try? doc.select("div.b-content-box").first() {
                         var contentItems: [PostContent] = []
                         
-                        // First, try to find fr-view div
                         if let frView = try? contentBox.select("div.fr-view").first() {
-                            // Process fr-view content
-                            for element in try frView.children() {
+                            for element in frView.children() { 
                                 do {
-                                    let tagName = try element.tagName()
+                                    let tagName = element.tagName() 
                                     
                                     switch tagName {
                                     case "p":
-                                        // Handle paragraphs
                                         let styleAttr = (try? element.attr("style")) ?? ""
                                         let text = try element.text().trimmingCharacters(in: .whitespacesAndNewlines)
                                         
@@ -550,7 +585,6 @@ class PostDetailViewModel: ObservableObject {
                                             contentItems.append(PostContent(type: .text, content: text, alignment: alignment))
                                         }
                                         
-                                        // Check for images within paragraph
                                         let images = try element.select("img.fr-fic")
                                         for image in images {
                                             if let imgSrc = try? image.attr("src") {
@@ -560,28 +594,24 @@ class PostDetailViewModel: ObservableObject {
                                         }
                                         
                                     case "table":
-                                        // Handle tables
                                         var headers: [String] = []
                                         var rows: [[String]] = []
                                         
-                                        // Get headers from th elements
                                         let headerElements = try element.select("th")
                                         if !headerElements.isEmpty() {
                                             headers = try headerElements.map { try $0.text() }
                                         } else {
-                                            // If no th elements, use first row as header
                                             if let firstRow = try element.select("tr").first() {
                                                 headers = try firstRow.select("td").map { try $0.text() }
                                             }
                                         }
                                         
-                                        // Get data rows
                                         let dataRows = try element.select("tr")
                                         let startIndex = headers.isEmpty ? 0 : 1
                                         
                                         for row in dataRows.array() {
                                             if startIndex > 0 && row == dataRows.first() {
-                                                continue  // Skip first row if it was used as header
+                                                continue  
                                             }
                                             
                                             let cells = try row.select("td")
@@ -596,7 +626,6 @@ class PostDetailViewModel: ObservableObject {
                                         }
                                         
                                     default:
-                                        // Handle other elements (text content)
                                         let hasTables = !(try element.select("table").isEmpty())
                                         let hasImages = !(try element.select("img").isEmpty())
                                         
@@ -612,7 +641,6 @@ class PostDetailViewModel: ObservableObject {
                                 }
                             }
                         } else {
-                            // Fallback to processing contentBox directly if fr-view is not found
                             print("fr-view not found, processing content box directly")
                             if let content = try? contentBox.text() {
                                 contentItems.append(PostContent(type: .text, content: content, alignment: .leading))
@@ -624,7 +652,6 @@ class PostDetailViewModel: ObservableObject {
                         }
                     }
                     
-                    // Extract attachments with file type
                     var attachments: [PostAttachment] = []
                     if let fileBox = try? doc.select("div.b-file-box").first() {
                         let fileLinks = try fileBox.select("a")
@@ -632,7 +659,6 @@ class PostDetailViewModel: ObservableObject {
                             let name = try link.text()
                             let url = try link.attr("href")
                             
-                            // Determine file type
                             var fileType: AttachmentType = .other
                             let className = try link.className()
                             if className.contains("hwp") {
@@ -661,7 +687,6 @@ class PostDetailViewModel: ObservableObject {
 }
     
     private func extractArticleNo(from link: String) -> String? {
-        // Try to find articleNo in the link
         guard let range = link.range(of: "articleNo=") else {
             return nil
         }
@@ -669,7 +694,6 @@ class PostDetailViewModel: ObservableObject {
         let start = range.upperBound
         let remainingString = String(link[start...])
         
-        // Extract the number until the next & or the end of string
         if let endRange = remainingString.range(of: "&") {
             return String(remainingString[..<endRange.lowerBound])
         } else {
@@ -677,10 +701,11 @@ class PostDetailViewModel: ObservableObject {
         }
     }
 
-extension TextAlignment {
+/*extension TextAlignment {
     var frameAlignment: Alignment {
         switch self {
             case .center: return .center
             case .leading: return .leading
             case .trailing: return .trailing
             @unknown default: return .leading } } }
+*/
